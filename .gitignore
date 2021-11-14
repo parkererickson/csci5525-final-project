@@ -1,2 +1,4 @@
 caseCitationEdges.csv
 processedCases.pickle
+.vscode
+test_trainer/
