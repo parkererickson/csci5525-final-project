@@ -1,3 +1,8 @@
 caseCitationEdges.csv
 processedCases.pickle
 ca1/
+.vscode
+test_trainer/
+data/
+.ipynb_checkpoints/
+__pycache__
