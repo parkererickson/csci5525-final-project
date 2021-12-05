@@ -6,3 +6,4 @@ test_trainer/
 data/
 .ipynb_checkpoints/
 __pycache__
+scotus/

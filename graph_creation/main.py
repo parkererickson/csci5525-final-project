@@ -28,7 +28,7 @@ def main(args):
         print("======== DROPPING ALL DATA ========")
         confirm = input("Confirm Dropping Data [Y/n]: ")
         if confirm == "Y":
-            print(conn.gsql('''DROP ALL''', options=[]))
+            print(conn.gsql('''USE GLOBAL\nDROP ALL''', options=[]))
         else:
             print("Not dropping data, aborting.")
             exit()
@@ -41,13 +41,13 @@ def main(args):
             with open("./gsql/schema/schema.gsql", 'r') as fp:
                 schemaDef = fp.read()
         schemaDef = schemaDef.replace('@graphname@', args.graphname)
-        print(conn.gsql("CREATE GRAPH "+args.graphname+"(*)", options=[]))
+        #print(conn.gsql("CREATE GRAPH "+args.graphname+"(*)", options=[]))
         out = conn.gsql(schemaDef)
-        token = conn.getToken(conn.createSecret())[0]
-        if args.all:
-            conn.apiToken = token
-        else:
-            print("API TOKEN CREATED:", token)
+        #token = conn.getToken(conn.createSecret())[0]
+        #if args.all:
+        #    conn.apiToken = token
+        #else:
+        #    print("API TOKEN CREATED:", token)
         print(out)
     ''' LOADING DATA '''
     ldrs = [x for x in dir(loaders) if "__" not in x]
