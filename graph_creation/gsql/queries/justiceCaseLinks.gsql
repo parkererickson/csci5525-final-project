@@ -1,0 +1,14 @@
+CREATE QUERY justiceCaseLinks(STRING justiceID) FOR GRAPH SCOTUS_Graph { 
+  MapAccum<STRING, ListAccum<DOUBLE>> @@caseEmbeddings;
+  MapAccum<STRING, ListAccum<DOUBLE>> @@justiceEmbedding;
+  MapAccum<STRING, STRING> @@caseVote;
+  
+  start = {Justice.*};
+  res = SELECT c FROM start:j -(:e)- SCCase:c WHERE j.justiceId == justiceID
+        ACCUM @@caseEmbeddings += (c.caseId -> c.embedding),
+              @@justiceEmbedding += (j.justiceName -> j.embedding),
+              @@caseVote += (c.caseId -> e.type);
+  PRINT @@caseEmbeddings, @@justiceEmbedding, @@caseVote;
+}
+
+INSTALL QUERY justiceCaseLinks

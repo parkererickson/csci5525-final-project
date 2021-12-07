@@ -59,13 +59,12 @@ def load(conn, file1="../citation-graph/SCDB_2021_01_justiceCentered_Citation.cs
     justices = df[["justice", "justiceName"]].drop_duplicates()
     justicesUp = conn.upsertVertexDataFrame(justices, "Justice", v_id="justice", attributes={"justiceName":"justiceName"})
     print("Justices:", justicesUp)
-    df["vote"] = df.apply(lambda x: "plaintiff" if x["partyWinning"] == "plaintiff" else "defendant", axis=1)
-    inFavorOfPlaintiff = df[df["vote"]=="plaintiff"]
-    inFavorOfPlaintiff = inFavorOfPlaintiff[["justice", "caseId"]].drop_duplicates()
-    plaintiffEdgeUp = conn.upsertEdgeDataFrame(inFavorOfPlaintiff, "Justice", "VOTED_IN_FAVOR_OF_PLAINTIFF", "SCCase", from_id="justice", to_id="caseId", attributes={})
-    print("Justice Votes For Plaintiff:", plaintiffEdgeUp)
-    inFavorOfDefendant = df[df["vote"]=="defendant"]
-    inFavorOfDefendant = inFavorOfDefendant[["justice", "caseId"]].drop_duplicates()
-    defendantEdgesUp = conn.upsertEdgeDataFrame(inFavorOfDefendant, "Justice", "VOTED_IN_FAVOR_OF_DEFENDANT", "SCCase", from_id="justice", to_id="caseId", attributes={})
-    print("Justice Votes For Defendant:", defendantEdgesUp)
+    conservativeEdge = df[df["direction"]=="1"] # according to SCDB codebook, conservative is 1
+    conservativeEdge = conservativeEdge[["justice", "caseId"]].drop_duplicates()
+    conservativeEdgeUp = conn.upsertEdgeDataFrame(conservativeEdge, "Justice", "CONSERVATIVE_VOTE", "SCCase", from_id="justice", to_id="caseId", attributes={})
+    print("Justice Conservative Votes:", conservativeEdgeUp)
+    liberalEdge = df[df["direction"]=="2"]
+    liberalEdge = liberalEdge[["justice", "caseId"]].drop_duplicates()
+    liberalEdgeUp = conn.upsertEdgeDataFrame(liberalEdge, "Justice", "LIBERAL_VOTE", "SCCase", from_id="justice", to_id="caseId", attributes={})
+    print("Justice Votes For Defendant:", liberalEdgeUp)
 

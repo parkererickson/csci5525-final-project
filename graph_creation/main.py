@@ -89,6 +89,7 @@ def main(args):
             with open(query, 'r') as fp:
                 queryDef = fp.read()
             queryDef = queryDef.replace('@graphname@', args.graphname)
+            queryDef = "USE GRAPH "+args.graphname+"\n"+queryDef
             out = conn.gsql(queryDef)
             print(out)
     print("======== PROCESS COMPLETE ========")
