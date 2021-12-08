@@ -1,0 +1,41 @@
+CREATE QUERY create_edge_weights(INT embDim) FOR GRAPH SCOTUS_Graph { 
+  MapAccum<STRING, ListAccum<DOUBLE>> @@edgeMap;
+  FOREACH i IN RANGE[0, embDim-1] DO
+    @@edgeMap += ("CONSERVATIVE_VOTE" -> 1);
+    @@edgeMap += ("LIBERAL_VOTE" -> 1);
+    @@edgeMap += ("CASE_HAS_PETITIONER_TYPE" -> 0);
+    @@edgeMap += ("CASE_CITED" -> 0);
+    @@edgeMap += ("CASE_HAS_RESPONDENT_TYPE" -> 0);
+    @@edgeMap += ("ISSUE_IN_AREA" -> 0);
+    @@edgeMap += ("CASE_ISSUE" -> 0);
+    @@edgeMap += ("CASE_ORIGIN" -> 0);
+    @@edgeMap += ("CASE_ORIGIN_FROM_STATE" -> 0);
+    @@edgeMap += ("PETITIONER_IN_STATE" -> 0);
+    @@edgeMap += ("RESPONDENT_IN_STATE" -> 0);
+    IF i < 4 THEN
+      @@edgeMap.get("PETITIONER_IN_STATE").update(i, 1);
+    ELSE IF i > 3 AND i < 8 THEN
+      @@edgeMap.get("RESPONDENT_IN_STATE").update(i, 1);
+    ELSE IF i > 7 AND i < 40 THEN
+      @@edgeMap.get("CASE_HAS_PETITIONER_TYPE").update(i, 1);
+    ELSE IF i > 39 AND i < 72 THEN
+      @@edgeMap.get("CASE_HAS_RESPONDENT_TYPE").update(i, 1);
+    ELSE IF i > 71 AND i < 104 THEN
+      @@edgeMap.get("CASE_ORIGIN").update(i, 1);
+    ELSE IF i > 103 AND i < 108 THEN
+      @@edgeMap.get("CASE_ORIGIN_FROM_STATE").update(i, 1);
+    ELSE IF i > 107 AND i < 171 THEN
+      @@edgeMap.get("CASE_ISSUE").update(i, 1);
+    ELSE
+      @@edgeMap.get("ISSUE_IN_AREA").update(i, 1);
+    END;
+  END;
+  Start = {ANY};
+  res = SELECT s FROM Start:s -(:e)- :t 
+        ACCUM
+        e.features = @@edgeMap.get(e.type);
+  PRINT @@edgeMap;
+    
+}
+
+INSTALL QUERY create_edge_weights
