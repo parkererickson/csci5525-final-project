@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 def load(conn, file1="../citation-graph/SCDB_2021_01_justiceCentered_Citation.csv", **kwargs):
     df = pd.read_csv(file1, dtype=str, encoding = "ISO-8859-1")
@@ -61,10 +62,22 @@ def load(conn, file1="../citation-graph/SCDB_2021_01_justiceCentered_Citation.cs
     print("Justices:", justicesUp)
     conservativeEdge = df[df["direction"]=="1"] # according to SCDB codebook, conservative is 1
     conservativeEdge = conservativeEdge[["justice", "caseId"]].drop_duplicates()
-    conservativeEdgeUp = conn.upsertEdgeDataFrame(conservativeEdge, "Justice", "CONSERVATIVE_VOTE", "SCCase", from_id="justice", to_id="caseId", attributes={})
+    train, validate, test = np.split(conservativeEdge.sample(frac=1, random_state=42), [int(.6*len(conservativeEdge)), int(.8*len(conservativeEdge))])  # split 60/20/20
+    train["train"] = True
+    validate["valid"] = True
+    test["test"] = True
+    conservativeEdgeUp = conn.upsertEdgeDataFrame(train, "Justice", "CONSERVATIVE_VOTE", "SCCase", from_id="justice", to_id="caseId", attributes={"train":"train"})
+    conservativeEdgeUp += conn.upsertEdgeDataFrame(validate, "Justice", "CONSERVATIVE_VOTE", "SCCase", from_id="justice", to_id="caseId", attributes={"valid":"valid"})
+    conservativeEdgeUp += conn.upsertEdgeDataFrame(test, "Justice", "CONSERVATIVE_VOTE", "SCCase", from_id="justice", to_id="caseId", attributes={"test":"test"})
     print("Justice Conservative Votes:", conservativeEdgeUp)
     liberalEdge = df[df["direction"]=="2"]
     liberalEdge = liberalEdge[["justice", "caseId"]].drop_duplicates()
-    liberalEdgeUp = conn.upsertEdgeDataFrame(liberalEdge, "Justice", "LIBERAL_VOTE", "SCCase", from_id="justice", to_id="caseId", attributes={})
+    train, validate, test = np.split(liberalEdge.sample(frac=1, random_state=42), [int(.6*len(liberalEdge)), int(.8*len(liberalEdge))])  # split 60/20/20
+    train["train"] = True
+    validate["valid"] = True
+    test["test"] = True
+    liberalEdgeUp = conn.upsertEdgeDataFrame(train, "Justice", "LIBERAL_VOTE", "SCCase", from_id="justice", to_id="caseId", attributes={"train":"train"})
+    liberalEdgeUp += conn.upsertEdgeDataFrame(validate, "Justice", "LIBERAL_VOTE", "SCCase", from_id="justice", to_id="caseId", attributes={"valid":"valid"})
+    liberalEdgeUp += conn.upsertEdgeDataFrame(test, "Justice", "LIBERAL_VOTE", "SCCase", from_id="justice", to_id="caseId", attributes={"test":"test"})
     print("Justice Votes For Defendant:", liberalEdgeUp)
 

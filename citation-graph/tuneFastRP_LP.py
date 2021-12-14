@@ -25,11 +25,11 @@ labels = {"LIBERAL_VOTE": 1,
 justices = conn.getVertices("Justice")
 justices = [x["v_id"] for x in justices]
 
-def createData(justices, embeddingDim):
+def createData(justices, embeddingDim, split):
     Xdata = []
     ydata = []
     for justice in justices:
-        res = conn.runInstalledQuery("justiceCaseLinks", params={"justiceID": int(justice)})
+        res = conn.runInstalledQuery("justiceCaseLinks", params={"justiceID": int(justice), split:True})
         caseEmbeddings = pd.DataFrame.from_dict(res[0]["@@caseEmbeddings"], orient="index").reset_index().rename(columns={"index":"caseId"})
         caseVotes = pd.DataFrame.from_dict(res[0]["@@caseVote"], orient="index").reset_index().rename(columns={"index":"caseId", 0:"vote"})
         data = caseVotes.merge(caseEmbeddings, on="caseId")
@@ -86,24 +86,26 @@ def objective(trial):
     params["reduced_dim"] = trial.suggest_categorical("reduced_dim", [64, 128, 256, 512])
     params["sampling_constant"] = trial.suggest_int("sampling_constant", 1,5)
     params["weights"] = trial.suggest_categorical("weights", ["1,1,1", "1,2,1", "1,4,1", "2,2,1", "2,4,1", "3,4,1", "1,2,4", "1,3,4", "1,4,4", "2,3,4", "4,2,1"])
-    paramUrl = constructParamUrl(vertexTypes, edgeTypes, params)
-    conn.runInstalledQuery("tg_weighted_fastRP", params=paramUrl, timeout=128_000)
-    
-    X, y = createData(justices, params["reduced_dim"])
     transform = trial.suggest_categorical("transform", ["L2", "hadamard", "L1", "avg", "concat"])
     params["transform"] = transform
-    wandb.init(project="scotus-no-citation-graph", config=params)
-    X = createTransform(X, params["reduced_dim"], transform)
-    X_train, X_test, y_train, y_test = sklearn.model_selection.train_test_split(X, y, test_size=0.2, random_state=42)
+    paramUrl = constructParamUrl(vertexTypes, edgeTypes, params)
+    wandb.init(project="scotus-no-citation-graph-test", config=params)
+    conn.runInstalledQuery("tg_weighted_fastRP", params=paramUrl, timeout=256_000)
+    
+    X_train, y_train = createData(justices, params["reduced_dim"], split="train")
+    X_train = createTransform(X_train, params["reduced_dim"], transform)
+    X_val, y_val = createData(justices, params["reduced_dim"], split="valid")
+    X_val = createTransform(X_val, params["reduced_dim"], transform)
     clf = LogisticRegression(solver="lbfgs", max_iter=1000)
     clf.fit(X_train, y_train)
-    accuracy = clf.score(X_test, y_test)
+    accuracy = clf.score(X_val, y_val)
     
     model_name = "fastRP_"+transform+"_"+str(params["reduced_dim"])+"_"+str(params["sampling_constant"])+"_"+str(params["weights"])+"_"+str(params["beta"])
-    wandb.sklearn.plot_classifier(clf, X_train, X_test, y_train, y_test, clf.predict(X_test), clf.predict_proba(X_test), labels=["Conservative Vote","Liberal Vote"], model_name=model_name)
+    wandb.sklearn.plot_classifier(clf, X_train, X_val, y_train, y_val, clf.predict(X_val), clf.predict_proba(X_val), labels=["Conservative Vote","Liberal Vote"], model_name=model_name)
 
     pca = sklearn.decomposition.PCA(n_components=3)
-    X_red = pca.fit_transform(X)
+    X = np.concatenate([X_train, X_val])
+    X_red = pca.fit_transform()
     fig = plt.figure(figsize=(10,8))
     ax = fig.add_subplot(projection='3d')
     ax.scatter(X_red[:,0], X_red[:,1], X_red[:,2], c=y)
@@ -118,7 +120,7 @@ def objective(trial):
 
 if __name__ == "__main__":
     study = optuna.create_study(direction="maximize")
-    study.optimize(objective, n_trials=50)
+    study.optimize(objective, n_trials=5)
     print(study.best_trial)
     with open("no_citation_edges_study.pkl", "wb") as f:
         pickle.dump(study, f)
