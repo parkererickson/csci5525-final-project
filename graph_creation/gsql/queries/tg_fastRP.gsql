@@ -23,8 +23,8 @@ CREATE QUERY tg_fastRP(SET<STRING> v_type, SET<STRING> e_type,
 		store_attr: option to write embeddings to a vertex attribute (NOTE: SCHEMA MUST SUPPORT THIS)
 		file_path: path to write embeddings to file
     */
-    ArrayAccum<SumAccum<FLOAT>> @embedding_arr[200];
-	ArrayAccum<AvgAccum> @final_embedding_arr[200];
+    ArrayAccum<SumAccum<FLOAT>> @embedding_arr[@embedding_dim@];
+	ArrayAccum<AvgAccum> @final_embedding_arr[@embedding_dim@];
 	ListAccum<FLOAT> @final_embedding_list;
 	SumAccum<FLOAT> @L, @@m;
 	ListAccum<FLOAT> @@weights;

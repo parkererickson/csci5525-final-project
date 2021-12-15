@@ -10,14 +10,16 @@ import pickle
 
 conn = tg.TigerGraphConnection(graphname="SCOTUS_Graph")
 
-edgeTypes = conn.getEdgeTypes() + ["CITED_BY", "STATE_CONTAINS_PETITIONER", 
+edgeTypes = conn.getEdgeTypes() + ["STATE_CONTAINS_PETITIONER", 
                                    "STATE_CONTAINS_RESPONDENT", "PETITIONER_TYPE_IN_CASE", 
                                    "RESPONDENT_TYPE_IN_CASE", "ORIGIN_OF_CASE",
                                    "STATE_ORIGIN_OF_CASE", "ISSUE_OF_CASE",
                                    "AREA_CONTAINS_ISSUE", "VOTED_CONSERVATIVE",
-                                   "VOTED_LIBERAL"]  # Have to get reverse edges too
+                                   "VOTED_LIBERAL"]  # Have to get reverse edges too, except CITED_BY, which would be forward-looking
 
 vertexTypes = conn.getVertexTypes()
+with open("../graph_creation/gsql/queries/tg_fastRP.gsql", "r") as f:
+    fast_rp_query = f.read()
 
 labels = {"LIBERAL_VOTE": 1,
           "CONSERVATIVE_VOTE": 0}
@@ -82,15 +84,23 @@ params = {
 
 
 def objective(trial):
-    params["beta"] = trial.suggest_float("beta", -1,1)
-    params["reduced_dim"] = trial.suggest_categorical("reduced_dim", [64, 128, 256, 512])
-    params["sampling_constant"] = trial.suggest_int("sampling_constant", 1,5)
-    params["weights"] = trial.suggest_categorical("weights", ["1,1,1", "1,2,1", "1,4,1", "2,2,1", "2,4,1", "3,4,1", "1,2,4", "1,3,4", "1,4,4", "2,3,4", "4,2,1"])
-    transform = trial.suggest_categorical("transform", ["L2", "hadamard", "L1", "avg", "concat"])
+    #params["beta"] = trial.suggest_float("beta", -1,1)
+    params["beta"] = trial.suggest_float("beta", -1,0.1)
+    #params["reduced_dim"] = trial.suggest_categorical("reduced_dim", [64, 128, 256, 512])
+    params["reduced_dim"] = trial.suggest_categorical("reduced_dim", [256, 512])
+    #params["sampling_constant"] = trial.suggest_int("sampling_constant", 1,5)
+    params["sampling_constant"] = trial.suggest_int("sampling_constant", 1,3)
+    #params["weights"] = trial.suggest_categorical("weights", ["1,1,1", "1,2,1", "1,4,1", "2,2,1", "2,4,1", "3,4,1", "1,2,4", "1,3,4", "1,4,4", "2,3,4", "4,2,1"])
+    params["weights"] = trial.suggest_categorical("weights", ["1,1,1", "1,3,4", "1,4,4", "2,3,4"])
+    #transform = trial.suggest_categorical("transform", ["L2", "hadamard", "L1", "avg", "concat"])
+    transform = trial.suggest_categorical("transform", ["concat"])
     params["transform"] = transform
     paramUrl = constructParamUrl(vertexTypes, edgeTypes, params)
+    conn.gsql("USE GRAPH "+conn.graphname+"\n"+"DROP QUERY tg_fastRP")
+    queryDef = "USE GRAPH "+conn.graphname+"\n"+fast_rp_query.replace("@embedding_dim@", str(params["reduced_dim"]))
+    conn.gsql(queryDef)
     wandb.init(project="scotus-citation-graph", config=params)
-    conn.runInstalledQuery("tg_weighted_fastRP", params=paramUrl, timeout=256_000)
+    conn.runInstalledQuery("tg_weighted_fastRP", params=paramUrl, timeout=512_000)
     
     X_train, y_train = createData(justices, params["reduced_dim"], split="train")
     X_train = createTransform(X_train, params["reduced_dim"], transform)
@@ -121,8 +131,8 @@ def objective(trial):
 
 if __name__ == "__main__":
     study = optuna.create_study(direction="maximize")
-    study.optimize(objective, n_trials=50)
+    study.optimize(objective, n_trials=20)
     print(study.best_trial)
-    with open("citation_edges_study.pkl", "wb") as f:
+    with open("citation_edges_study_2.pkl", "wb") as f:
         pickle.dump(study, f)
     
