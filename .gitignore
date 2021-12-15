@@ -6,5 +6,6 @@ test_trainer/
 data/
 .ipynb_checkpoints/
 __pycache__
-scotus/
+scotus_opinions/
 wandb/
+scotus_clusters/

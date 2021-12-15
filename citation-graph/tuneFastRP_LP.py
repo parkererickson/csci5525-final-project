@@ -105,7 +105,8 @@ def objective(trial):
 
     pca = sklearn.decomposition.PCA(n_components=3)
     X = np.concatenate([X_train, X_val])
-    X_red = pca.fit_transform()
+    y = np.concatenate([y_train, y_val])
+    X_red = pca.fit_transform(X)
     fig = plt.figure(figsize=(10,8))
     ax = fig.add_subplot(projection='3d')
     ax.scatter(X_red[:,0], X_red[:,1], X_red[:,2], c=y)
@@ -120,8 +121,8 @@ def objective(trial):
 
 if __name__ == "__main__":
     study = optuna.create_study(direction="maximize")
-    study.optimize(objective, n_trials=5)
+    study.optimize(objective, n_trials=50)
     print(study.best_trial)
-    with open("no_citation_edges_study.pkl", "wb") as f:
+    with open("citation_edges_study.pkl", "wb") as f:
         pickle.dump(study, f)
     
