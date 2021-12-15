@@ -89,7 +89,7 @@ def objective(trial):
     transform = trial.suggest_categorical("transform", ["L2", "hadamard", "L1", "avg", "concat"])
     params["transform"] = transform
     paramUrl = constructParamUrl(vertexTypes, edgeTypes, params)
-    wandb.init(project="scotus-no-citation-graph-test", config=params)
+    wandb.init(project="scotus-citation-graph", config=params)
     conn.runInstalledQuery("tg_weighted_fastRP", params=paramUrl, timeout=256_000)
     
     X_train, y_train = createData(justices, params["reduced_dim"], split="train")
