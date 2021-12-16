@@ -100,7 +100,7 @@ def objective(trial):
     queryDef = "USE GRAPH "+conn.graphname+"\n"+fast_rp_query.replace("@embedding_dim@", str(params["reduced_dim"]))
     conn.gsql(queryDef)
     wandb.init(project="scotus-citation-graph", config=params)
-    conn.runInstalledQuery("tg_weighted_fastRP", params=paramUrl, timeout=512_000)
+    conn.runInstalledQuery("tg_fastRP", params=paramUrl, timeout=512_000)
     
     X_train, y_train = createData(justices, params["reduced_dim"], split="train")
     X_train = createTransform(X_train, params["reduced_dim"], transform)

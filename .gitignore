@@ -9,3 +9,4 @@ __pycache__
 scotus_opinions/
 wandb/
 scotus_clusters/
+test_fastrp.ipynb
